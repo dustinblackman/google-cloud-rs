@@ -1,6 +1,6 @@
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 
-use crate::storage::api::object::ObjectResource;
+use crate::storage::api::object::{ObjectFolderList, ObjectResource};
 use crate::storage::{Client, Error, Object};
 
 /// Represents a Cloud Storage bucket.
@@ -105,5 +105,41 @@ impl Bucket {
         response.error_for_status()?;
 
         Ok(())
+    }
+
+    /// List all files within a folder.
+    pub async fn list_files(&mut self, prefix: &str) -> Result<Vec<String>, Error> {
+        let client = &mut self.client;
+        let inner = &client.client;
+        let uri = format!(
+            "{}/b/{}/o",
+            Client::ENDPOINT,
+            utf8_percent_encode(&self.name, NON_ALPHANUMERIC),
+        );
+
+        let token = client.token_manager.lock().await.token().await?;
+        let request = inner
+            .get(uri.as_str())
+            .header("authorization", token)
+            .query(&[
+                ("delimiter", "/"),
+                ("maxResults", "999"),
+                ("fields", "items/name"),
+                ("prefix", prefix),
+            ])
+            .send();
+
+        let response = request.await?;
+        let string = response.error_for_status()?.text().await?;
+        let resource = json::from_str::<ObjectFolderList>(string.as_str())?;
+        let files = resource
+            .items
+            .unwrap() // TODO
+            .into_iter()
+            .map(|e| e.name)
+            // .filter(|e| e.ends_with("/") == false)
+            .collect();
+
+        Ok(files)
     }
 }

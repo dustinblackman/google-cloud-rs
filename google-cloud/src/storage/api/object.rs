@@ -25,7 +25,6 @@ pub struct ObjectResource {
     pub storage_class: String,
     pub time_storage_class_updated: Option<String>,
     pub size: String,
-    pub md5_hash: String,
     pub media_link: String,
     pub content_encoding: Option<String>,
     pub content_disposition: Option<String>,
@@ -35,7 +34,7 @@ pub struct ObjectResource {
     pub acl: Option<Vec<ObjectAclResource>>,
     pub owner: Option<ObjectOwner>,
     pub crc32c: String,
-    pub component_count: Option<String>,
+    pub component_count: Option<u64>,
     pub etag: String,
     pub customer_encryption: Option<ObjectCustomerEncryption>,
     pub kms_key_name: Option<String>,
@@ -53,4 +52,17 @@ pub struct ObjectOwner {
 pub struct ObjectCustomerEncryption {
     pub encryption_algorithm: String,
     pub key_sha256: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ObjectFolderName {
+    pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ObjectFolderList {
+    pub next_page_token: Option<String>,
+    pub items: Option<Vec<ObjectFolderName>>,
 }

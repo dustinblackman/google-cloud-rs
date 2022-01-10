@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 
 use crate::storage::{Client, Error};
@@ -64,6 +65,30 @@ impl Object {
         let bytes = response.error_for_status()?.bytes().await?.to_vec();
 
         Ok(bytes)
+    }
+
+    /// Get the entire contents of the object as a byte stream.
+    pub async fn get_stream(&mut self) -> Result<impl futures::stream::Stream<Item = reqwest::Result<Bytes>>, Error> {
+        let client = &mut self.client;
+        let inner = &client.client;
+        let uri = format!(
+            "{}/b/{}/o/{}",
+            Client::ENDPOINT,
+            utf8_percent_encode(&self.bucket, NON_ALPHANUMERIC),
+            utf8_percent_encode(&self.name, NON_ALPHANUMERIC),
+        );
+
+        let token = client.token_manager.lock().await.token().await?;
+
+        let request = inner
+            .get(uri.as_str())
+            .query(&[("alt", "media")])
+            .header("authorization", token)
+            .send();
+
+        let response = request.await?;
+        let stream = response.error_for_status()?.bytes_stream();
+        Ok(stream)
     }
 
     /// Delete the object.
