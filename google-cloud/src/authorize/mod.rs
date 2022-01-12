@@ -16,19 +16,19 @@ const AUTH_ENDPOINT: &str = "https://oauth2.googleapis.com/token";
 
 /// Represents application credentials for accessing Google Cloud Platform services.
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct ApplicationCredentials {
     #[serde(rename = "type")]
-    pub cred_type: String,
-    pub project_id: String,
-    pub private_key_id: String,
+    pub cred_type: Option<String>,
+    pub project_id: Option<String>,
+    pub private_key_id: Option<String>,
     pub private_key: String,
     pub client_email: String,
-    pub client_id: String,
-    pub auth_uri: String,
-    pub token_uri: String,
-    pub auth_provider_x509_cert_url: String,
-    pub client_x509_cert_url: String,
+    pub client_id: Option<String>,
+    pub auth_uri: Option<String>,
+    pub token_uri: Option<String>,
+    pub auth_provider_x509_cert_url: Option<String>,
+    pub client_x509_cert_url: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -80,6 +80,19 @@ impl TokenManager {
             Some(ref token) if token.expiry >= current_time => Ok(token.value.to_string()),
             _ => {
                 let expiry = current_time + hour;
+                if self.creds.client_email == "gcp-internal" {
+                    let ar: AuthResponse = reqwest::Client::new()
+                        .get("http://metadata/computeMetadata/v1/instance/service-accounts/default/token")
+                        .header("X-Google-Metadata-Request", "True")
+                        .send().await.unwrap()
+                        .json().await.unwrap();
+
+                    let value = TokenValue::Bearer(ar.access_token);
+                    let token = value.to_string();
+                    self.current_token = Some(Token { expiry, value });
+                    return Ok(token);
+                }
+
                 let claims = json!({
                     "iss": self.creds.client_email.as_str(),
                     "scope": self.scopes.as_str(),
