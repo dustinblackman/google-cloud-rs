@@ -80,6 +80,25 @@ impl TokenManager {
             Some(ref token) if token.expiry >= current_time => Ok(token.value.to_string()),
             _ => {
                 let expiry = current_time + hour;
+                if self.creds.client_email == "gcp-user" {
+                    // I'm too lazy for this...
+                    let res = tokio::process::Command::new("gcloud")
+                        .args(["auth", "application-default", "print-access-token"])
+                        .output()
+                        .await
+                        .unwrap()
+                        .stdout;
+
+                    let access_token = String::from_utf8_lossy(&res[..])
+                        .to_string()
+                        .trim()
+                        .to_string();
+                    let value = TokenValue::Bearer(access_token);
+                    let token = value.to_string();
+                    self.current_token = Some(Token { expiry, value });
+                    return Ok(token);
+                }
+
                 if self.creds.client_email == "gcp-internal" {
                     let ar: AuthResponse = reqwest::Client::new()
                         .get("http://metadata/computeMetadata/v1/instance/service-accounts/default/token")

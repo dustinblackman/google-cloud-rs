@@ -18,7 +18,7 @@ maintenance = { status = "actively-developed" }
 google-cloud-derive = { version = "0.2.1", path = "../google-cloud-derive", optional = true }
 
 tonic = { version = "0.4.1", features = ["tls", "prost"] }
-tokio = { version = "1.4.0", features = ["macros", "fs"] }
+tokio = { version = "1.4.0", features = ["macros", "fs", "process"] }
 reqwest = { version = "0.11.2", optional = true, default_features = false, features = ["blocking", "json", "rustls-tls", "stream"] }
 hyper = "0.14.4"
 hyper-rustls = "0.22.1"

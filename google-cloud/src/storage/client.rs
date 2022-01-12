@@ -42,6 +42,17 @@ impl Client {
     ///
     /// Credentials are looked up in the `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
     pub async fn new(project_name: impl Into<String>) -> Result<Client, Error> {
+        let default_credentials = std::path::Path::new(&std::env::var("HOME").unwrap_or_default())
+            .join(".config/gcloud/application_default_credentials.json");
+        if default_credentials.is_file() {
+            let creds = ApplicationCredentials {
+                client_email: "gcp-user".to_owned(),
+                private_key: "gcp-user".to_owned(),
+                ..Default::default()
+            };
+            return Client::from_credentials(project_name, creds).await;
+        }
+
         let gcp_req = reqwest::get("http://metadata.google.internal").await;
         if gcp_req.is_ok() && gcp_req.unwrap().status() == 200 {
             let creds = ApplicationCredentials {
