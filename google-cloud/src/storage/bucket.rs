@@ -118,28 +118,43 @@ impl Bucket {
         );
 
         let token = client.token_manager.lock().await.token().await?;
-        let request = inner
-            .get(uri.as_str())
-            .header("authorization", token)
-            .query(&[
-                ("delimiter", "/"),
-                ("maxResults", "999"),
-                ("fields", "items/name"),
-                ("prefix", prefix),
-            ])
-            .send();
+        let mut files = Vec::new();
+        let mut page_token = String::from("");
 
-        let response = request.await?;
-        let string = response.error_for_status()?.text().await?;
-        let resource = json::from_str::<ObjectFolderList>(string.as_str())?;
-        let files = resource
-            .items
-            .unwrap() // TODO
-            .into_iter()
-            .map(|e| e.name)
-            // .filter(|e| e.ends_with("/") == false)
-            .collect();
+        loop {
+            let request = inner
+                .get(uri.as_str())
+                .header("authorization", &token)
+                .query(&[
+                    ("delimiter", "/"),
+                    ("maxResults", "999"),
+                    ("fields", "items/name,prefixes,nextPageToken"),
+                    ("prefix", prefix),
+                    ("pageToken", &page_token),
+                ])
+                .send();
 
-        Ok(files)
+            let response = request.await?;
+            let string = response.error_for_status()?.text().await?;
+            let resource = json::from_str::<ObjectFolderList>(string.as_str())?;
+
+            if let Some(items) = resource.items {
+                let mut list = items.into_iter().map(|e| e.name).collect::<Vec<String>>();
+                files.append(&mut list);
+            }
+
+            if let Some(items) = resource.prefixes {
+                let mut list = items.into_iter().map(|e| e.replace("/", "")).collect();
+                files.append(&mut list);
+            }
+
+            if let Some(next_token) = resource.next_page_token {
+                page_token = next_token.clone();
+            } else {
+                break;
+            }
+        }
+
+        return Ok(files);
     }
 }

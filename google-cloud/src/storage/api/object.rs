@@ -65,4 +65,5 @@ pub struct ObjectFolderName {
 pub struct ObjectFolderList {
     pub next_page_token: Option<String>,
     pub items: Option<Vec<ObjectFolderName>>,
+    pub prefixes: Option<Vec<String>>,
 }
