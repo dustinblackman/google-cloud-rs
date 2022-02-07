@@ -61,6 +61,7 @@ pub(crate) struct TokenManager {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct AuthResponse {
     access_token: String,
+    expires_in: i64,
 }
 
 impl TokenManager {
@@ -108,6 +109,7 @@ impl TokenManager {
 
                     let value = TokenValue::Bearer(ar.access_token);
                     let token = value.to_string();
+                    let expiry = current_time + chrono::Duration::seconds(ar.expires_in);
                     self.current_token = Some(Token { expiry, value });
                     return Ok(token);
                 }
