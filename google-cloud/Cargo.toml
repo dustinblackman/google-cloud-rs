@@ -17,15 +17,11 @@ maintenance = { status = "actively-developed" }
 # Derive macros
 google-cloud-derive = { version = "0.2.1", path = "../google-cloud-derive", optional = true }
 
-tonic = { version = "0.4.1", features = ["tls", "prost"] }
 tokio = { version = "1.4.0", features = ["macros", "fs", "process"] }
 reqwest = { version = "=0.11.20", optional = true, default-features = false, features = ["native-tls-vendored", "json", "stream"] }
 hyper = "0.14.4"
 hyper-rustls = "0.22.1"
 futures = "0.3.13"
-
-prost = "0.7.0"
-prost-types = "0.7.0"
 
 http = "0.2.3"
 chrono = "0.4.19"
@@ -39,19 +35,12 @@ thiserror = "1.0.24"
 bytes = { version = "1.0.1" }
 percent-encoding = { version = "2.1.0", optional = true }
 
-[build-dependencies]
-tonic-build = "0.4.1"
-
 [features]
 default = ["storage"] # TODO remove.
-full = ["pubsub", "datastore", "vision", "storage"]
-full-derive = ["pubsub", "datastore-derive", "vision", "storage"]
-pubsub = []
-datastore = []
-datastore-derive = ["datastore", "google-cloud-derive"]
-vision = []
+full = ["storage"]
+full-derive = [ "storage"]
 storage = ["reqwest", "percent-encoding"]
-derive = ["datastore-derive"]
+derive = []
 
 [package.metadata.docs.rs]
 all-features = true
