@@ -24,7 +24,7 @@ chrono = "0.4.19"
 
 serde = { version = "1.0.125", features = ["derive"] }
 json = { package = "serde_json", version = "1.0.64" }
-jwt = { package = "jsonwebtoken", version = "7.2.0" }
+jwt = { package = "jsonwebtoken", version = "10.2.0", features = ["rust_crypto"] }
 
 thiserror = "1.0.24"
 
