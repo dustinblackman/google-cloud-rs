@@ -2,8 +2,6 @@ use std::fmt;
 
 use chrono::offset::Utc;
 use chrono::DateTime;
-use hyper::client::{Client, HttpConnector};
-use hyper_rustls::HttpsConnector;
 use json::json;
 use serde::{Deserialize, Serialize};
 
@@ -52,7 +50,7 @@ pub(crate) struct Token {
 
 #[derive(Debug, Clone)]
 pub(crate) struct TokenManager {
-    client: Client<HttpsConnector<HttpConnector>>,
+    client: reqwest::Client,
     scopes: String,
     creds: ApplicationCredentials,
     current_token: Option<Token>,
@@ -68,7 +66,7 @@ impl TokenManager {
     pub(crate) fn new(creds: ApplicationCredentials, scopes: &[&str]) -> TokenManager {
         TokenManager {
             creds,
-            client: Client::builder().build::<_, hyper::Body>(HttpsConnector::with_native_roots()),
+            client: reqwest::Client::new(),
             scopes: scopes.join(" "),
             current_token: None,
         }
@@ -101,7 +99,7 @@ impl TokenManager {
                 }
 
                 if self.creds.client_email == "gcp-internal" {
-                    let ar: AuthResponse = reqwest::Client::new()
+                    let ar: AuthResponse = self.client
                         .get("http://metadata/computeMetadata/v1/instance/service-accounts/default/token")
                         .header("X-Google-Metadata-Request", "True")
                         .send().await.unwrap()
@@ -131,17 +129,15 @@ impl TokenManager {
                     token.as_str()
                 );
 
-                let req = hyper::Request::builder()
-                    .method("POST")
-                    .uri(AUTH_ENDPOINT)
+                let response = self
+                    .client
+                    .post(AUTH_ENDPOINT)
                     .header("Content-Type", "application/x-www-form-urlencoded")
-                    .body(hyper::Body::from(form))?;
+                    .body(form)
+                    .send()
+                    .await?;
 
-                let data = hyper::body::to_bytes(self.client.request(req).await?.into_body())
-                    .await?
-                    .to_vec();
-
-                let ar: AuthResponse = json::from_slice(&data)?;
+                let ar: AuthResponse = response.json().await?;
 
                 let value = TokenValue::Bearer(ar.access_token);
                 let token = value.to_string();
